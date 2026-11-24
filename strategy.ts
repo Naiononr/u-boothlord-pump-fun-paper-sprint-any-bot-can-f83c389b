@@ -25,9 +25,28 @@
 // +2% floor, the trailing stop arms at the same +10% and exits on an 8% pullback
 // from the peak, and the two quiet-tape exits fire — out after 8 slots with no
 // trade, or when 10-slot net flow drops below -0.05 SOL. A position that stops
-// moving is usually about to be sold into, so it leaves on our terms. None of
-// this is tuned to chase the dev PnL — the final window is unseen future data,
-// and the point is a disciplined, fast-exiting version of the same idea.
+// moving is usually about to be sold into, so it leaves on our terms.
+//
+// RESUME PASS (2026-11-24, sweep 3/4/5 — hello, this batch of orders was run
+// to close out the search the first builder left open): sweep 3, the
+// late-momentum / completion-ride family (minAge 0/100/500, maxAge up to
+// 100_000 slots, flow and real-SOL thresholds, trailing stop), peaked at
+// +0.0013 SOL over just 8 trips — noise, not an edge, and below the 20-coin
+// guardrail. Sweep 4, completion-proximity entries (minRealSol 20/40/60 SOL,
+// long holds, TP up to 100%), peaked at +0.0138 SOL over 11 trips with the
+// top 3 coins carrying 100% of the gain — again one lucky coin, and no coin
+// in the dev window ever reached 40 SOL of real reserve, so the 40/60 SOL
+// rows traded nothing at all. Sweep 5, a fee-aware sizing/exit grid on the
+// sniper base (stake 0.05/0.10/0.20 SOL × TP 10/15/20% × SL 10/15% × hold
+// 5/10/20 slots, 54 combos), found the least-bad guardrails-met config at
+// stake 0.05 SOL, TP 20%, SL 15%, hold 10 slots: −0.458 SOL over 368 trips,
+// drawdown 0.048. No positive-expectancy config exists anywhere in the five
+// sweeps (156 combos on top of sweeps 1–2); per-trade expectancy is negative
+// in every family because the ~2.8% round-trip fee eats the mostly-dying
+// coins. So the final parameters below take the sweep-5 least-bad config —
+// smaller stake, wider take-profit — rather than pretend a winning edge was
+// found. The final grading window is unseen future data, and the point is a
+// disciplined, fast-exiting version of the same idea.
 //
 // The bot is deterministic by construction: no clock, no randomness, no I/O;
 // iteration is only over insertion-ordered maps fed by the batch stream.
@@ -108,7 +127,7 @@ export interface Params {
 export const DEFAULT_PARAMS: Params = {
   minAge: 0,
   maxAge: 3,
-  stakeLamports: 100_000_000,
+  stakeLamports: 50_000_000,
   minBuyLamports: 10_000_000,
   maxAdds: 1,
   addStepBps: 200,
@@ -134,7 +153,7 @@ export const DEFAULT_PARAMS: Params = {
   tp1Bps: 1_000,
   tp1PartBps: 5_000,
   slAfterTp1Bps: -200,
-  tpBps: 1_500,
+  tpBps: 2_000,
   slBps: 1_500,
   trailArmBps: 1_000,
   trailBps: 800,
