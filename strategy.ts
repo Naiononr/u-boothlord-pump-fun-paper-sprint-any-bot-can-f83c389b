@@ -21,6 +21,14 @@
 // data, so none of this is tuned to chase the dev number — it is the disciplined,
 // faster-exit version of the same idea.
 //
+// Pass 2 of the same revision switches on the exit machinery v1 left disabled: the
+// partial take-profit now actually fires (half off at +10%, the rest protected at a
+// +2% floor instead of breakeven), the trailing stop arms at the same +10% and exits on
+// an 8% pullback from the best value, and the two dead-tape exits are live — out after
+// 8 slots with no trade, or when the 10-slot net flow turns worse than -0.05 SOL. A
+// position that stops moving is a position that is about to be sold into, so it leaves
+// on our terms instead of the market's.
+//
 // Deterministic by construction: no clock, no randomness, no I/O; iteration only over
 // insertion-ordered maps fed by the batch stream.
 
@@ -123,17 +131,17 @@ export const DEFAULT_PARAMS: Params = {
   minRecentBuyers: 0,
   skipDevSold: true,
   buySlippageBps: 10_000,
-  tp1Bps: 1_000_000,
+  tp1Bps: 1_000,
   tp1PartBps: 5_000,
-  slAfterTp1Bps: 0,
+  slAfterTp1Bps: -200,
   tpBps: 1_500,
   slBps: 1_500,
-  trailArmBps: 1_000_000,
-  trailBps: 1_000,
+  trailArmBps: 1_000,
+  trailBps: 800,
   maxHold: 10,
   exitOnDevSell: true,
-  staleSlots: 1_000_000,
-  exitFlowLamports: 1_000_000_000_000,
+  staleSlots: 8,
+  exitFlowLamports: 50_000_000,
   maxEntries: 1,
   cooldown: 150,
 };
