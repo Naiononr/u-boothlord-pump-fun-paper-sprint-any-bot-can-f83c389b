@@ -521,13 +521,19 @@ export function createStrategy(params: Params = DEFAULT_PARAMS): Bot {
     const steppedUp = vq * launch.lastBuyVt * BPS >= launch.lastBuyVq * vt * BigInt(10_000 + P.addStepBps);
     if (!steppedUp) return { order: null, spent: 0n };
     if (windowFlow(launch, state.slot).net < BigInt(P.addMinFlowLamports)) return { order: null, spent: 0n };
+    // The inflow must come from at least one real (non-creator) buyer in the
+    // window — a lone creator wash should never justify pressing size.
+    if (windowFlow(launch, state.slot).buyers < 1) return { order: null, spent: 0n };
     const cap = state.maxBuyLamports(launch.mint);
     const want = BigInt(P.addLamports);
     const amount = want < cap ? want : cap;
-    if (amount < minBuy || free < amount + txFee) return { order: null, spent: 0n };
+    // Never let an add push total spend on the coin past the planned stake.
+    const room = stake - launch.lamportsPlaced;
+    const sized = amount < room ? amount : room;
+    if (sized < minBuy || free < sized + txFee) return { order: null, spent: 0n };
     return {
-      order: { side: 'buy', mint: launch.mint, quote_lamports: amount, max_slippage_bps: P.buySlippageBps },
-      spent: amount,
+      order: { side: 'buy', mint: launch.mint, quote_lamports: sized, max_slippage_bps: P.buySlippageBps },
+      spent: sized,
     };
   }
 
