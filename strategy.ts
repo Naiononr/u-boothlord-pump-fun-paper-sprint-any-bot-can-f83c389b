@@ -10,6 +10,17 @@
 // can eat the account. Position size is capped by the 1%-of-real-reserve rule per reply, so
 // a position is built over a few batches while the tape still qualifies.
 //
+// Second pass (revision of the v1 entry): the exits and the entry window now follow the
+// builder's own parameter sweeps on the dev calibration set instead of the first-guess
+// values — tpBps/slBps 1500/1500 with maxHold 10 was the best exit cell (-0.61 SOL vs
+// -1.35 SOL for the v1 defaults), and the entry window tightens to maxAge 3 with the
+// swept buyer window (minBuyers 2, maxBuyers 8, minTrades 2). The add rule is tightened
+// too: an add now needs both a real price move (+2% from the last buy's decision price)
+// and positive recent net flow, so adds only press a position that is actually working
+// instead of averaging down into a dying tape. The final grading window is unseen future
+// data, so none of this is tuned to chase the dev number — it is the disciplined,
+// faster-exit version of the same idea.
+//
 // Deterministic by construction: no clock, no randomness, no I/O; iteration only over
 // insertion-ordered maps fed by the batch stream.
 
@@ -88,14 +99,14 @@ export interface Params {
 
 export const DEFAULT_PARAMS: Params = {
   minAge: 0,
-  maxAge: 5,
+  maxAge: 3,
   stakeLamports: 100_000_000,
   minBuyLamports: 10_000_000,
   maxAdds: 1,
-  addStepBps: 0,
+  addStepBps: 200,
   addDelay: 2,
   addLamports: 50_000_000,
-  addMinFlowLamports: 0,
+  addMinFlowLamports: 10_000_000,
   minRealSol: 300_000_000,
   maxRealSol: 30_000_000_000,
   minDevBuy: 0,
@@ -115,11 +126,11 @@ export const DEFAULT_PARAMS: Params = {
   tp1Bps: 1_000_000,
   tp1PartBps: 5_000,
   slAfterTp1Bps: 0,
-  tpBps: 2_000,
-  slBps: 1_000,
+  tpBps: 1_500,
+  slBps: 1_500,
   trailArmBps: 1_000_000,
   trailBps: 1_000,
-  maxHold: 30,
+  maxHold: 10,
   exitOnDevSell: true,
   staleSlots: 1_000_000,
   exitFlowLamports: 1_000_000_000_000,
